@@ -1,0 +1,155 @@
+/* General page layout */
+.ard-page-container {
+    display: flex;
+    min-height: 100vh;
+    min-width: 100vw;
+    margin-top: 0%;
+}
+
+/* Content container on the right */
+.ard-content-container {
+    margin-top: 0%;
+    flex-grow: 1;
+    padding: 20px;
+    background-color: #f4f4f4;
+    min-height: 100vh;
+}
+
+/* Compost container */
+.ard-compost-container {
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    margin: 0 auto;
+    max-width: 70vw;
+    width: 100%;
+}
+
+/* Title styling */
+.ard-compost-title {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 25px;
+    text-align: center;
+    color: #333;
+}
+
+/* Compost list styling */
+.ard-compost-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Individual compost item - now more compact */
+.ard-compost-item {
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Compost item text, now side by side using flexbox */
+.ard-compost-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    flex: 1;
+}
+
+/* Text styling */
+.ard-compost-text {
+    font-size: 16px;
+    color: #555;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Actions container (edit/delete buttons) - placed to the right */
+.ard-compost-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Compost status dropdown */
+.ard-compost-select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+/* Button styling */
+.ard-btn {
+    padding: 8px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.ard-btn:hover {
+    background-color: #45a049;
+}
+
+/* Cancel button */
+.ard-cancel-btn {
+    background-color: #f44336;
+}
+
+.ard-cancel-btn:hover {
+    background-color: #e53935;
+}
+
+/* Edit button */
+.ard-edit-btn {
+    background-color: #2196F3;
+}
+
+.ard-edit-btn:hover {
+    background-color: #1e88e5;
+}
+
+/* Delete button */
+.ard-delete-btn {
+    background-color: #f44336;
+}
+
+.ard-delete-btn:hover {
+    background-color: #e53935;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .ard-content-container {
+        margin-left: 0;
+        padding: 15px;
+    }
+
+    .ard-compost-container {
+        max-width: 100%;
+        padding: 20px;
+    }
+
+    .ard-compost-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .ard-compost-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .ard-btn, .ard-compost-select {
+        width: 100%;
+    }
+}
