@@ -7,13 +7,37 @@ const handleErrorResponse = (res, error, message) => {
 };
 
 // Helper function to sanitize strings to prevent XSS
-const sanitize = (str) => {
-    if (!str) return '';
-    return str.replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;")
-              .replace(/"/g, "&quot;")
-              .replace(/'/g, "&#039;");
+// const sanitize = (str) => {
+//     if (!str) return '';
+//     return str.replace(/&/g, "&amp;")
+//               .replace(/</g, "&lt;")
+//               .replace(/>/g, "&gt;")
+//               .replace(/"/g, "&quot;")
+//               .replace(/'/g, "&#039;");
+// };
+const sanitize = (input) => {
+    if (input === null || input === undefined) {
+        return '';
+    }
+    
+    // Convert to string if it's not already
+    if (typeof input !== 'string') {
+        // For numbers, booleans, etc., convert to string
+        if (typeof input === 'number' || typeof input === 'boolean') {
+            input = String(input);
+        } else {
+            // For objects, arrays, etc., return empty string or handle appropriately
+            console.warn('Sanitize function received non-string input:', typeof input, input);
+            return '';
+        }
+    }
+    
+    // Now safely perform sanitization on the string
+    return input.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
 };
 
 // Add a new schedule
