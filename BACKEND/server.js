@@ -13,7 +13,7 @@ const app = express();
 // requires no new dependency and prevents trivial information leakage.
 app.disable('x-powered-by');
 require("dotenv").config();
-const { authLimiter } = require('./middleware/rateLimiter');
+const { authLimiter, oauthLimiter } = require('./middleware/rateLimiter');
 const csrf = require('csurf');
 const cookieParser = require('cookie-parser');
 
@@ -179,13 +179,14 @@ app.use('/api/recycle', recycleRoutes); // All recycle routes will now start wit
 // oauth implementation: Google OAuth routes (only registered if strategy configured)
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_CALLBACK_URL) {
     // enable state parameter to mitigate CSRF-like attacks for OAuth flow
-    app.get('/auth/google', authLimiter, passport.authenticate('google', {
+    // Protect both the initial OAuth request and the callback with a stricter limiter
+    app.get('/auth/google', oauthLimiter, passport.authenticate('google', {
         scope: ['profile', 'email'],
         state: true
     }));
 
     app.get('/auth/google/callback',
-        authLimiter,
+        oauthLimiter,
         passport.authenticate('google', { failureRedirect: '/login', session: true }),
         (req, res) => {
             // Successful authentication, redirect to UserHome
