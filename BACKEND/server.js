@@ -180,17 +180,30 @@ app.use('/api/recycle', recycleRoutes); // All recycle routes will now start wit
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_CALLBACK_URL) {
     // enable state parameter to mitigate CSRF-like attacks for OAuth flow
     // Protect both the initial OAuth request and the callback with a stricter limiter
-    app.get('/auth/google', oauthLimiter, passport.authenticate('google', {
-        scope: ['profile', 'email'],
-        state: true
-    }));
+    app.get('/auth/google', oauthLimiter, (req, res, next) => {
+        // Start OAuth flow explicitly inside a handler so the limiter
+        // is guaranteed to run before authentication begins. This also
+        // makes the flow clearer to static analysis tools.
+        passport.authenticate('google', { scope: ['profile', 'email'], state: true })(req, res, next);
+    });
 
     app.get('/auth/google/callback',
         oauthLimiter,
-        passport.authenticate('google', { failureRedirect: '/login', session: true }),
-        (req, res) => {
-            // Successful authentication, redirect to UserHome
-            res.redirect('http://localhost:3000/UserHome'); // oauth implementation: redirect to UserHome instead of /dashboard
+        (req, res, next) => {
+            // Explicitly call passport.authenticate inside a handler so the rate limiter
+            // is unambiguously applied before any authentication work. This also
+            // allows us to centrally handle errors and establish the session.
+            passport.authenticate('google', { failureRedirect: '/login', session: true }, (err, user, info) => {
+                if (err) return next(err);
+                if (!user) return res.redirect('/login');
+
+                // Establish session for authenticated user
+                req.logIn(user, (err) => {
+                    if (err) return next(err);
+                    // Successful authentication, redirect to UserHome
+                    return res.redirect('http://localhost:3000/UserHome');
+                });
+            })(req, res, next);
         }
     );
 }
