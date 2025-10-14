@@ -2,15 +2,16 @@
 const express = require('express');
 const { registerUser, loginUser, getUser, ensureAuthenticated } = require('../controllers/authController');
 const auth = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
 
-// User Registration Route
-router.post('/register', registerUser);
+// User Registration Route (rate-limited)
+router.post('/register', authLimiter, registerUser);
 
-// User Login Route
-router.post('/login', loginUser);
+// User Login Route (rate-limited)
+router.post('/login', authLimiter, loginUser);
 
 // Get User Information (Protected Route)
 router.get('/user', auth, getUser);

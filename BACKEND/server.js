@@ -8,6 +8,7 @@ const passport = require('passport'); // oauth implementation: passport core
 const GoogleStrategy = require('passport-google-oauth20').Strategy; // oauth implementation: Google OAuth 2.0
 const app = express();
 require("dotenv").config();
+const { authLimiter } = require('./middleware/rateLimiter');
 
 const PORT = process.env.PORT || 8070;
 
@@ -36,42 +37,56 @@ app.use(passport.session());
 
 const URL = process.env.MONGODB_URL;
 
+if (!URL) {
+    console.error('Missing MONGODB_URL environment variable. Please set MONGODB_URL in your environment or .env file.');
+    // Exit process with non-zero code to avoid running without a DB connection
+    process.exit(1);
+}
+
 mongoose.connect(URL, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-});
-
-const connection = mongoose.connection;
-connection.once('open', () => {
+}).then(() => {
     console.log('MongoDB Connection Success!');
+}).catch((err) => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
 });
 
 // oauth implementation: Passport Google OAuth 2.0 strategy
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL,
-}, async (accessToken, refreshToken, profile, done) => {
-    try {
-        // security fix: validate Google profile
-        if (!profile || !profile.id || !profile.emails || !profile.displayName) {
-            return done(new Error('Invalid Google profile'));
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
+
+if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_CALLBACK_URL) {
+    passport.use(new GoogleStrategy({
+        clientID: GOOGLE_CLIENT_ID,
+        clientSecret: GOOGLE_CLIENT_SECRET,
+        callbackURL: GOOGLE_CALLBACK_URL,
+    }, async (accessToken, refreshToken, profile, done) => {
+        try {
+            // security fix: validate Google profile
+            if (!profile?.id || !profile?.emails || !profile?.displayName) {
+                return done(new Error('Invalid Google profile'));
+            }
+            // Find or create user
+            const User = require('./models/User');
+            let user = await User.findOne({ googleId: profile.id });
+            if (!user) {
+                user = await User.create({
+                    googleId: profile.id,
+                    email: profile.emails[0].value,
+                    name: profile.displayName
+                });
+            }
+            return done(null, user);
+        } catch (err) {
+            return done(err, null);
         }
-        // Find or create user
-        const User = require('./models/User');
-        let user = await User.findOne({ googleId: profile.id });
-        if (!user) {
-            user = await User.create({
-                googleId: profile.id,
-                email: profile.emails[0].value,
-                name: profile.displayName
-            });
-        }
-        return done(null, user);
-    } catch (err) {
-        return done(err, null);
-    }
-}));
+    }));
+} else {
+    console.warn('Google OAuth not configured: missing GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_CALLBACK_URL. OAuth routes will be disabled.');
+}
 
 // oauth implementation: serialize/deserialize user
 passport.serializeUser((user, done) => {
@@ -116,22 +131,25 @@ const recycleRoutes = require('./routes/recycle'); // Import the recycle routes
 app.use('/api/auth', authRoutes); // All auth routes will now start with /api/auth
 app.use('/api/recycle', recycleRoutes); // All recycle routes will now start with /api/recycle
 
-// oauth implementation: Google OAuth routes
-app.get('/auth/google', passport.authenticate('google', {
-    scope: ['profile', 'email']
-}));
+// oauth implementation: Google OAuth routes (only registered if strategy configured)
+if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_CALLBACK_URL) {
+    app.get('/auth/google', authLimiter, passport.authenticate('google', {
+        scope: ['profile', 'email']
+    }));
 
-app.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login', session: true }),
-    (req, res) => {
-        // Successful authentication, redirect to UserHome
-        res.redirect('http://localhost:3000/UserHome'); // oauth implementation: redirect to UserHome instead of /dashboard
-    }
-);
+    app.get('/auth/google/callback',
+        authLimiter,
+        passport.authenticate('google', { failureRedirect: '/login', session: true }),
+        (req, res) => {
+            // Successful authentication, redirect to UserHome
+            res.redirect('http://localhost:3000/UserHome'); // oauth implementation: redirect to UserHome instead of /dashboard
+        }
+    );
+}
 
 // oauth implementation: example protected route
 app.get('/profile', (req, res) => {
-    if (!req.isAuthenticated || !req.isAuthenticated()) {
+    if (!req.isAuthenticated?.() ) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     // Only send safe user info

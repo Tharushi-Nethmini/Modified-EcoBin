@@ -92,7 +92,7 @@ exports.getUser = async (req, res) => {
 
 // oauth implementation: helper to check if user is authenticated (for session-based auth)
 exports.ensureAuthenticated = (req, res, next) => {
-  if (req.isAuthenticated && req.isAuthenticated()) {
+  if (req.isAuthenticated?.()) {
     return next();
   }
   return res.status(401).json({ error: 'Unauthorized' });
