@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const calculatePaymentController = require('../controllers/calculatePaymentController');
+const { apiLimiter } = require('../middleware/rateLimiter');
 
-// 1. Create a new payment
-router.post('/addpaymentdetails', calculatePaymentController.createPayment);
+// 1. Create a new payment (apply generic API rate limiter)
+router.post('/addpaymentdetails', apiLimiter, calculatePaymentController.createPayment);
 
 // 2. Get all payments
 router.get('/getallpaymentdetails', calculatePaymentController.getAllPayments);

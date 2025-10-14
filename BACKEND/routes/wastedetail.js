@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const wasteDetailController = require('../controllers/wasteDetailController');
+const { apiLimiter } = require('../middleware/rateLimiter');
 
-// Add multiple waste details
-router.post('/add-waste-multiple', wasteDetailController.addWasteMultiple);
+// Add multiple waste details (apply generic API rate limiter)
+router.post('/add-waste-multiple', apiLimiter, wasteDetailController.addWasteMultiple);
 
 // View all waste details
 router.get('/view-waste', wasteDetailController.viewWaste);

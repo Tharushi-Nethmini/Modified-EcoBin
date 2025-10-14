@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const compostRequestController = require('../controllers/compostRequestController');
+const { apiLimiter } = require('../middleware/rateLimiter');
 
-// Route to add a new compost request
-router.post('/addcompostrequest', compostRequestController.addCompostRequest);
+// Route to add a new compost request (apply generic API rate limiter)
+router.post('/addcompostrequest', apiLimiter, compostRequestController.addCompostRequest);
 
 // Route to get all compost requests
 router.get('/getallcompostrequests', compostRequestController.getAllCompostRequests);

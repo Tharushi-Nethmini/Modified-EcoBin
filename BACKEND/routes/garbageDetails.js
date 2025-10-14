@@ -1,9 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const garbageDetailsController = require("../controllers/garbageDetailsController");
+const { apiLimiter } = require('../middleware/rateLimiter');
 
 // Routes
-router.post("/addgarbageDetails", garbageDetailsController.addGarbageDetails);
+// Protect creation endpoint with generic API rate limiter to prevent abuse
+router.post("/addgarbageDetails", apiLimiter, garbageDetailsController.addGarbageDetails);
 router.get("/allgarbageDetails", garbageDetailsController.getAllGarbageDetails);
 router.put("/updategarbageDetails/:garid", garbageDetailsController.updateGarbageDetails);
 router.delete("/deletegarbageDetails/:garid", garbageDetailsController.deleteGarbageDetails);

@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const cardPaymentController = require("../controllers/cardPaymentController");
+const { apiLimiter } = require('../middleware/rateLimiter');
 
-// POST route to process card payment
-router.post('/addcardpayment', cardPaymentController.processCardPayment);
+// POST route to process card payment (apply generic API rate limiter)
+router.post('/addcardpayment', apiLimiter, cardPaymentController.processCardPayment);
 
 module.exports = router;
 

@@ -2,11 +2,12 @@
 const express = require('express');
 const { createCollection, getAllCollections, updateCollectionStatus, getRecycleHistoryByEmail } = require('../controllers/recycleController');
 const auth = require('../middleware/auth'); // JWT Authentication Middleware
+const { apiLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
-// POST route to handle recycling data
-router.post('/', createCollection);
+// POST route to handle recycling data (apply generic API rate limiter)
+router.post('/', apiLimiter, createCollection);
 
 // GET route to fetch all collections
 router.get('/', getAllCollections);
