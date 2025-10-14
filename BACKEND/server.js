@@ -167,8 +167,10 @@ app.use('/compostRequest',compostrequestRouter);
 const authRoutes = require('./routes/auth'); // Import the auth routes
 const recycleRoutes = require('./routes/recycle'); // Import the recycle routes
 
-// Use the auth routes
-app.use('/api/auth', authRoutes); // All auth routes will now start with /api/auth
+// Use the auth routes. Apply authLimiter at the router mount for defense-in-depth so
+// every endpoint under /api/auth is rate-limited (even if an individual route forgets
+// to include the middleware).
+app.use('/api/auth', authLimiter, authRoutes); // All auth routes will now start with /api/auth
 app.use('/api/recycle', recycleRoutes); // All recycle routes will now start with /api/recycle
 
 // attach csrfProtection to any subsequent stateful routes that require CSRF
