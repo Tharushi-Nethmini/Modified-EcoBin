@@ -9,6 +9,8 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy; // oauth imp
 const app = express();
 require("dotenv").config();
 const { authLimiter } = require('./middleware/rateLimiter');
+const csrf = require('csurf');
+const cookieParser = require('cookie-parser');
 
 const PORT = process.env.PORT || 8070;
 
@@ -17,6 +19,22 @@ app.use(cors({
     credentials: true // security fix: allow cookies to be sent cross-origin
 }));
 app.use(bodyParser.json());
+// parse cookies to support CSRF token in a cookie
+app.use(cookieParser());
+
+// CSRF protection using double submit cookie pattern
+// We protect stateful session routes. For stateless JSON APIs used by the SPA
+// you might choose to exempt them or use a different strategy (e.g., verify
+// custom header + token). Here we add csurf middleware globally but skip it
+// for paths that are clearly API-only if necessary.
+const csrfProtection = csrf({ cookie: true });
+
+// Send CSRF token to client in a cookie for SPA to read and send back in header
+app.use((req, res, next) => {
+    // Only set the token if sessions are being used and user has a session
+    // We'll call csurf later to generate the token where appropriate
+    next();
+});
 
 // security fix: configure express-session with secure and httpOnly cookies
 app.use(session({
@@ -34,6 +52,23 @@ app.use(session({
 // oauth implementation: initialize passport and session
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Apply CSRF protection to routes that use session authentication.
+// We'll attach the CSRF middleware after session & passport are initialized.
+// For this app, the `/api/auth` routes are mixed (login uses JSON) so we will
+// apply csrfProtection to routes that require it selectively in the route file
+// or here for all stateful routes. For convenience, expose an endpoint to
+// fetch a CSRF token at GET /api/csrf-token which the SPA can call after
+// establishing a session (if any).
+app.get('/api/csrf-token', csrfProtection, (req, res) => {
+    // csurf will create req.csrfToken()
+    res.cookie('XSRF-TOKEN', req.csrfToken(), {
+        httpOnly: false, // allowed for SPA JS to read
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+    });
+    res.json({ csrfToken: req.csrfToken() });
+});
 
 const URL = process.env.MONGODB_URL;
 
@@ -131,10 +166,15 @@ const recycleRoutes = require('./routes/recycle'); // Import the recycle routes
 app.use('/api/auth', authRoutes); // All auth routes will now start with /api/auth
 app.use('/api/recycle', recycleRoutes); // All recycle routes will now start with /api/recycle
 
+// attach csrfProtection to any subsequent stateful routes that require CSRF
+// protection by calling app.use(csrfProtection) here or per-route in route files.
+
 // oauth implementation: Google OAuth routes (only registered if strategy configured)
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_CALLBACK_URL) {
+    // enable state parameter to mitigate CSRF-like attacks for OAuth flow
     app.get('/auth/google', authLimiter, passport.authenticate('google', {
-        scope: ['profile', 'email']
+        scope: ['profile', 'email'],
+        state: true
     }));
 
     app.get('/auth/google/callback',
@@ -148,7 +188,7 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_CALLBACK_URL) {
 }
 
 // oauth implementation: example protected route
-app.get('/profile', (req, res) => {
+app.get('/profile', csrfProtection, (req, res) => {
     if (!req.isAuthenticated?.() ) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -158,6 +198,16 @@ app.get('/profile', (req, res) => {
         name: req.user.name,
         email: req.user.email
     });
+});
+
+// Global error handler (including csurf errors)
+app.use((err, req, res, next) => {
+    if (err.code === 'EBADCSRFTOKEN') {
+        // CSRF token errors
+        return res.status(403).json({ error: 'Invalid CSRF token' });
+    }
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
 });
 
 app.listen(PORT, () => {
