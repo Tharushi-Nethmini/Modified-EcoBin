@@ -7,6 +7,11 @@ const session = require('express-session'); // oauth implementation: express-ses
 const passport = require('passport'); // oauth implementation: passport core
 const GoogleStrategy = require('passport-google-oauth20').Strategy; // oauth implementation: Google OAuth 2.0
 const app = express();
+
+// Security: disable the X-Powered-By header to avoid exposing Express/implementation details
+// (Snyk/CW E-200 recommendation). Using Helmet is another option, but disabling this header
+// requires no new dependency and prevents trivial information leakage.
+app.disable('x-powered-by');
 require("dotenv").config();
 const { authLimiter } = require('./middleware/rateLimiter');
 const csrf = require('csurf');
