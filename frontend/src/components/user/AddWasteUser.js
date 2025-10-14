@@ -42,8 +42,25 @@ export default function AddWasteUser() {
     }, []);
 
     const handleWasteChange = (index, field, value) => {
+        // Validate index is a safe integer within bounds
+        const idx = Number(index);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= wasteDetails.length) {
+            console.warn("handleWasteChange: invalid index", index);
+            return;
+        }
+
+        // Whitelist allowed fields to prevent prototype pollution and unexpected keys
+        const allowedFields = new Set(["email", "category", "waste", "weight", "weightType", "route"]);
+        if (typeof field !== "string" || !allowedFields.has(field)) {
+            console.warn("handleWasteChange: disallowed field", field);
+            return;
+        }
+
+        // Create new array and a shallow copy of the object we're updating to avoid mutating state
         const updatedWasteDetails = [...wasteDetails];
-        updatedWasteDetails[index][field] = value;
+        const entry = { ...updatedWasteDetails[idx] };
+        entry[field] = value;
+        updatedWasteDetails[idx] = entry;
         setWasteDetails(updatedWasteDetails);
     };
 
