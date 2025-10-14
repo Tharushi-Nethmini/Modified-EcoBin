@@ -8,6 +8,11 @@ const passport = require('passport'); // oauth implementation: passport core
 const GoogleStrategy = require('passport-google-oauth20').Strategy; // oauth implementation: Google OAuth 2.0
 const app = express();
 
+// If your app is behind a proxy (nginx, load balancer), enable trust proxy
+// so req.ip is populated with the originating client IP. This is important
+// for correct rate-limiting behavior when using express-rate-limit.
+app.set('trust proxy', 1);
+
 // Security: disable the X-Powered-By header to avoid exposing Express/implementation details
 // (Snyk/CW E-200 recommendation). Using Helmet is another option, but disabling this header
 // requires no new dependency and prevents trivial information leakage.
